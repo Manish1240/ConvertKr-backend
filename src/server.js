@@ -1,16 +1,19 @@
-const express = require('express');
-const { connectDb } = require('./db-connection');
-const app = express();
-require('dotenv').config();
+const app = require('./app');
+const { getConfig } = require('./config/env');
+const { connectDatabase } = require('./config/database');
 
-const port = 3000 || process.env.PORT
+async function startServer() {
+  try {
+    const config = getConfig();
+    await connectDatabase(config);
 
+    app.listen(config.port, () => {
+      console.log(`Server listening on port ${config.port}`);
+    });
+  } catch (error) {
+    console.error(`Startup failed: ${error.message}`);
+    process.exitCode = 1;
+  }
+}
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
-
-app.listen(port, () => {
-  connectDb();
-  console.log(`Example app listening on port ${port}`)
-})
+startServer();
