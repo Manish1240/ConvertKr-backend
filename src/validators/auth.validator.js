@@ -18,4 +18,11 @@ const signupSchema = z
     }
   });
 
-module.exports = { signupSchema };
+const loginSchema = z
+  .object({
+    email: z.string().trim().email().toLowerCase(),
+    password: z.string(),
+  })
+  .strict();
+
+module.exports = { signupSchema, loginSchema };

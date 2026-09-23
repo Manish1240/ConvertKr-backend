@@ -1,6 +1,40 @@
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user.model');
 const AppError = require('../utils/app-error');
+const { getConfig } = require('../config/env');
+
+const authenticationError = () => new AppError('Invalid email or password', 401);
+
+async function loginUser({ email, password }) {
+  const normalizedEmail = email.toLowerCase();
+  const user = await User.findOne({ email: normalizedEmail }).select('+passwordHash');
+
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    throw authenticationError();
+  }
+
+  if (user.status !== 'active') {
+    throw new AppError('Account is not active', 401);
+  }
+
+  const config = getConfig();
+  const accessToken = jwt.sign(
+    { userId: user._id.toString() },
+    config.jwtSecret,
+    { expiresIn: config.jwtExpiresIn },
+  );
+
+  return {
+    user: {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+    },
+    accessToken,
+  };
+}
 
 async function signupUser({ name, email, password }) {
   const normalizedEmail = email.toLowerCase();
@@ -36,4 +70,4 @@ async function signupUser({ name, email, password }) {
   }
 }
 
-module.exports = { signupUser };
+module.exports = { loginUser, signupUser };
